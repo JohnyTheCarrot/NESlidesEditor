@@ -44,8 +44,11 @@ else ()
     )
 endif ()
 
-add_executable(${CMAKE_PROJECT_NAME} src/main.cpp
-        src/subprocess.h)
+add_executable(${CMAKE_PROJECT_NAME}
+    src/main.cpp
+    src/subprocess.h
+    src/tinyfiledialogs.c
+)
 
 include(FetchContent)
 

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <format>
 
+#include "tinyfiledialogs.h"
 #include "subprocess.h"
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/component/component.hpp>
@@ -123,6 +124,52 @@ ftxui::Component ErrorModal(std::function<void()> const &okay_clicked) {
     return component;
 }
 
+constexpr std::array c_ExportExtensions{"*.neslides"};
+
+void SaveSlides(Slides const &slides) {
+    char const *const file_path{tinyfd_saveFileDialog("Save Slides", "", c_ExportExtensions.size(), c_ExportExtensions.data(), nullptr)};
+    if (!file_path)
+        return;
+
+    std::ofstream file{file_path, std::ios::binary};
+
+    if (!file.is_open())
+        return;
+
+    for (auto const &slide : slides) {
+        file.write(slide->c_str(), slide->size());
+        file.put('\0');
+    }
+}
+
+void LoadSlides(Slides &out) {
+    char const *const file_path{tinyfd_openFileDialog("Open Slides", "", c_ExportExtensions.size(), c_ExportExtensions.data(), nullptr, 0)};
+    if (!file_path)
+        return;
+
+    std::ifstream file{file_path, std::ios::binary};
+
+    if (!file.is_open())
+        return;
+
+    out.clear();
+    std::string slide;
+    char c;
+    while (file.get(c)) {
+        if (c == '\0') {
+            out.emplace_back(std::make_unique<std::string>(slide));
+            slide.clear();
+        } else {
+            slide.push_back(c);
+        }
+    }
+}
+
+[[nodiscard]]
+bool AskIfSure() {
+    return tinyfd_messageBox("Are you sure?", "Are you certain you want to perform this action?", "yesno", "question", 0) == 1;
+}
+
 constexpr int c_MaxColumns{26};
 constexpr int c_MaxRows{27};
 
@@ -160,8 +207,9 @@ int main() {
     }};
 
     auto const export_button = Button("Export", [&] {
-        if (Export(slides))
-            show_success();
+        if (Export(slides)) {
+            tinyfd_notifyPopup("Success", "Slides exported successfuly. You will find the ROM in the output folder.", "info");
+        }
         else
             show_error();
     }, ButtonOption::Ascii());
@@ -169,6 +217,9 @@ int main() {
     auto const new_slide = Button("New Slide", add_slide, ButtonOption::Ascii());
     auto const delete_slide = Button("Delete Slide", [&] {
         if (slides.size() > 1) {
+            if (!AskIfSure())
+                return;
+
             slides.erase(slides.begin() + current_slide_index);
             slide_inputs.erase(slide_inputs.begin() + current_slide_index);
             slide_titles.erase(slide_titles.begin() + current_slide_index);
@@ -180,14 +231,45 @@ int main() {
             current_slide_index = static_cast<int>(slides.size()) - 1;
         }
     }, ButtonOption::Ascii());
+    auto const reset = Button("Reset", [&] {
+        if (!AskIfSure())
+            return;
+
+        slides.clear();
+        slide_inputs.clear();
+        slide_titles.clear();
+        tabs->DetachAllChildren();
+        add_slide();
+    }, ButtonOption::Ascii());
+
+    auto const open = Button("Open", [&] {
+        LoadSlides(slides);
+
+        slide_inputs.clear();
+        slide_titles.clear();
+        tabs->DetachAllChildren();
+        for (auto const &slide : slides) {
+            slide_inputs.emplace_back(Input(slide.get()) | border);
+            tabs->Add(slide_inputs.back());
+            slide_titles.emplace_back(std::format("Slide {}", slide_titles.size()));
+        }
+        current_slide_index = 0;
+    }, ButtonOption::Ascii());
+
+    auto const save_as = Button("Save As", [&] {
+        SaveSlides(slides);
+    }, ButtonOption::Ascii());
 
     auto const tab_toggle = Toggle(&slide_titles, &current_slide_index);
 
     auto const component = Container::Vertical({
         export_button,
+        save_as,
+        open,
         tab_toggle,
         new_slide,
         delete_slide,
+        reset,
         tabs
     });
 
@@ -200,8 +282,11 @@ int main() {
                 text("NESlides Editor"),
                 separator(),
                 export_button->Render(),
+                save_as->Render(),
+                open->Render(),
                 new_slide->Render(),
                 delete_slide->Render(),
+                reset->Render(),
                 separator(),
                 tab_toggle->Render()
             }),
