@@ -10,14 +10,6 @@ set (CC65_DIR ${CMAKE_BINARY_DIR}/cc65)
 set (NES_PROJ_DIR ${CMAKE_BINARY_DIR}/neslides)
 set (MAKE_DIR ${CMAKE_BINARY_DIR}/make)
 
-if (WIN32)
-    set (MAKE_BUILD_COMMAND ${MAKE_DIR}/build_w32.bat)
-    set (MAKE_CONFIGURE_COMMAND "")
-else ()
-    set (MAKE_BUILD_COMMAND ${MAKE_DIR}/build.sh)
-    set (MAKE_CONFIGURE_COMMAND ./configure)
-endif ()
-
 ExternalProject_Add(
         cc65
         GIT_REPOSITORY https://github.com/cc65/cc65.git
@@ -28,15 +20,30 @@ ExternalProject_Add(
         INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/cc65/bin ${CMAKE_BINARY_DIR}/bin
 )
 
-ExternalProject_Add(
-        gnu_make
-        URL https://ftp.gnu.org/gnu/make/make-4.4.tar.gz
-        SOURCE_DIR ${MAKE_DIR}
-        BINARY_DIR ${MAKE_DIR}
-        CONFIGURE_COMMAND ${MAKE_CONFIGURE_COMMAND}
-        BUILD_COMMAND ${MAKE_BUILD_COMMAND}
-        INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${MAKE_DIR}/make ${CMAKE_BINARY_DIR}/bin
-)
+set (MAKE_TARGET gnu_make)
+set (MAKE_URL https://ftp.gnu.org/gnu/make/make-4.4.tar.gz)
+
+if (WIN32)
+    ExternalProject_Add(
+            ${MAKE_TARGET}
+            URL ${MAKE_URL}
+            SOURCE_DIR ${MAKE_DIR}
+            BINARY_DIR ${MAKE_DIR}
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ${MAKE_DIR}/build_w32.bat
+            INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${MAKE_DIR}/make ${CMAKE_BINARY_DIR}/bin
+    )
+else ()
+    ExternalProject_Add(
+            ${MAKE_TARGET}
+            URL ${MAKE_URL}
+            SOURCE_DIR ${MAKE_DIR}
+            BINARY_DIR ${MAKE_DIR}
+            CONFIGURE_COMMAND ./configure
+            BUILD_COMMAND ${MAKE_DIR}/build.sh
+            INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${MAKE_DIR}/make ${CMAKE_BINARY_DIR}/bin
+    )
+endif ()
 
 add_executable(${CMAKE_PROJECT_NAME} main.cpp)
 
@@ -53,5 +60,5 @@ add_custom_target(nes_proj ALL
 add_custom_target(shippable ALL
         COMMAND ${CMAKE_COMMAND} --install ${CMAKE_BINARY_DIR} --prefix ${CMAKE_INSTALL_PREFIX}
                 && ${CMAKE_COMMAND} -E copy_directory ${NES_PROJ_DIR} ${CMAKE_INSTALL_PREFIX}/neslides
-        DEPENDS ${PROJECT_NAME} cc65 nes_proj gnu_make
+        DEPENDS ${PROJECT_NAME} gnu_make cc65 nes_proj
 )
