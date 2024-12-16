@@ -31,7 +31,7 @@ if (WIN32)
             BINARY_DIR ${MAKE_DIR}
             CONFIGURE_COMMAND ""
             BUILD_COMMAND ${MAKE_DIR}/build_w32.bat
-            INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${MAKE_DIR}/make ${CMAKE_BINARY_DIR}/bin
+            INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${MAKE_DIR}/WinRel/gnumake.exe ${CMAKE_BINARY_DIR}/bin/make.exe
     )
 else ()
     ExternalProject_Add(
@@ -41,7 +41,7 @@ else ()
             BINARY_DIR ${MAKE_DIR}
             CONFIGURE_COMMAND ./configure
             BUILD_COMMAND ${MAKE_DIR}/build.sh
-            INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${MAKE_DIR}/WinRel/gnumake.exe ${CMAKE_BINARY_DIR}/bin/make.exe
+            INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${MAKE_DIR}/make ${CMAKE_BINARY_DIR}/bin
     )
 endif ()
 
