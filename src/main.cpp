@@ -1,10 +1,11 @@
 #include <iostream>
 #include <span>
+#include <array>
 #include "subprocess.h"
 
 void start_process(std::span<char const *> command) {
     subprocess_s subprocess{};
-    if (int const result{subprocess_create(command.data(), 0, &subprocess)}; result != 0) {
+    if (int const result{subprocess_create(command.data(), subprocess_option_inherit_environment, &subprocess)}; result != 0) {
         std::cerr << "Failed to create subprocess." << std::endl;
         exit(1);
     }
@@ -15,49 +16,33 @@ void start_process(std::span<char const *> command) {
         exit(1);
     }
 
-    FILE *pStdout{subprocess_stdout(&subprocess)};
-    if (!pStdout) {
-        fclose(pStdout);
-    } else {
-        char buffer[1024];
-        fgets(buffer, sizeof(buffer), pStdout);
-        std::cout << buffer << std::endl;
-    }
-
-    fclose(pStdout);
-
-    FILE *pStderr{subprocess_stderr(&subprocess)};
-    if (!pStderr) {
-        fclose(pStderr);
-    } else {
-        char buffer[1024];
-        fgets(buffer, sizeof(buffer), pStderr);
-        std::cerr << buffer << std::endl;
-    }
-
-    fclose(pStderr);
-
     std::cout << "Process returned: " << process_return << std::endl;
 }
 
 #ifdef _WIN32
-#define CA65 "../bin/ca65.exe"
-#define LD65 "../bin/ld65.exe"
+#define MAKE ".\\bin\\make.exe"
+#define OUTPUT_FOLDER "..\\output"
+#define CA65 "..\\bin\\ca65.exe"
+#define LD65 "..\\bin\\ld65.exe"
+#define OS_OPTION "OS=Windows_NT"
 #else
+#define MAKE "./bin/make"
+#define OUTPUT_FOLDER "../output"
 #define CA65 "../bin/ca65"
 #define LD65 "../bin/ld65"
+#define OS_OPTION nullptr
 #endif
 
 int main() {
     std::cout << "Hello, World!" << std::endl;
 
     {
-        std::array<char const *, 6> command{"bin/make", "clean", "-C", "neslides", "OUT_DIR=../output", nullptr};
+        std::array<char const *, 7> command{MAKE, "clean", "-C", "neslides", "OUT_DIR=" OUTPUT_FOLDER, OS_OPTION, nullptr};
         start_process(command);
     }
 
     {
-        std::array<char const *, 8> command{"bin/make", "all", "-C", "neslides", "CA65=" CA65, "LD65=" LD65, "OUT_DIR=../output", nullptr};
+        std::array<char const *, 9> command{MAKE, "all", "-C", "neslides", "CA65=" CA65, "LD65=" LD65, "OUT_DIR=" OUTPUT_FOLDER, OS_OPTION, nullptr};
         start_process(command);
     }
 

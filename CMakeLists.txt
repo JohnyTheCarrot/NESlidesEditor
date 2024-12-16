@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 
 include(ExternalProject)
 
-
 set (CC65_DIR ${CMAKE_BINARY_DIR}/cc65)
 set (NES_PROJ_DIR ${CMAKE_BINARY_DIR}/neslides)
 set (MAKE_DIR ${CMAKE_BINARY_DIR}/make)

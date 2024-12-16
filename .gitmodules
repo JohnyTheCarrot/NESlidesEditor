@@ -1,3 +1,4 @@
 [submodule "neslides"]
 	path = neslides
 	url = https://github.com/knapeczadam/rcep-group-project
+	branch = main
