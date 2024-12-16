@@ -6,10 +6,7 @@
 
 #include "subprocess.h"
 #include <ftxui/dom/elements.hpp>
-#include <ftxui/screen/screen.hpp>
-#include <ftxui/screen/string.hpp>
-
-#include "../cmake-build-release-visual-studio/_deps/ftxui-src/include/ftxui/component/component.hpp"
+#include <ftxui/component/component.hpp>
 
 [[nodiscard]]
 bool start_process(std::span<char const *> command) {
@@ -97,6 +94,29 @@ ftxui::Component SuccessModal(std::function<void()> const &okay_clicked) {
     return component;
 }
 
+[[nodiscard]]
+ftxui::Component ErrorModal(std::function<void()> const &okay_clicked) {
+    using namespace ftxui;
+
+    auto component = Container::Vertical({
+        Button("Okay", okay_clicked),
+    });
+
+    component |= Renderer([&](Element inner) {
+        return vbox({
+            text(L"Something went wrong."),
+            separator(),
+            std::move(inner),
+        })
+            | size(WIDTH, GREATER_THAN, 30)
+            | border;
+    });
+
+    return component;
+}
+
+constexpr int c_MaxColumns{26};
+
 int main() {
     using namespace ftxui;
 
@@ -112,9 +132,14 @@ int main() {
 
     bool error_shown = false;
     auto const show_error{[&]{ error_shown = true; }};
+    auto const hide_error{[&]{ error_shown = false; }};
 
     std::string input;
-    auto const textarea = Input(&input);
+    auto textarea = Input(&input);
+    textarea |= CatchEvent([&](Event const &event) {
+        return event.is_character() && !std::isalnum(event.character()[0]) && !std::ispunct(event.character()[0]);
+    });
+
     auto const save_button = Button("Export", [&] {
         if (Export(input))
             show_success();
@@ -122,11 +147,11 @@ int main() {
             show_error();
     }, ButtonOption::Ascii());
 
-    auto const component = Container::Vertical({
-        textarea,
-        save_button
-    });
 
+    auto const component = Container::Vertical({
+        save_button,
+        textarea,
+    });
     auto renderer = Renderer(component, [&] {
         return vbox({
             hbox({
@@ -139,9 +164,11 @@ int main() {
         }) | border;
     });
 
-    auto success_modal{SuccessModal(hide_success)};
+    auto const success_modal{SuccessModal(hide_success)};
+    auto const error_modal{ErrorModal(hide_error)};
 
     renderer |= Modal(success_modal, &success_shown);
+    renderer |= Modal(error_modal, &error_shown);
 
     screen.Loop(renderer);
     return 0;
