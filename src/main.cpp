@@ -156,6 +156,7 @@ int main() {
         slide_inputs.emplace_back(Input(slides.back().get()) | border);
         tabs->Add(slide_inputs.back());
         slide_titles.emplace_back(std::format("Slide {}", slides.size() - 1));
+        current_slide_index = static_cast<int>(slides.size()) - 1;
     }};
 
     auto const export_button = Button("Export", [&] {
@@ -166,6 +167,19 @@ int main() {
     }, ButtonOption::Ascii());
 
     auto const new_slide = Button("New Slide", add_slide, ButtonOption::Ascii());
+    auto const delete_slide = Button("Delete Slide", [&] {
+        if (slides.size() > 1) {
+            slides.erase(slides.begin() + current_slide_index);
+            slide_inputs.erase(slide_inputs.begin() + current_slide_index);
+            slide_titles.erase(slide_titles.begin() + current_slide_index);
+            tabs->ChildAt(current_slide_index)->Detach();
+
+            for (auto title_it{slide_titles.begin() + current_slide_index}; title_it != slide_titles.end(); ++title_it) {
+                *title_it = std::format("Slide {}", std::distance(slide_titles.begin(), title_it));
+            }
+            current_slide_index = static_cast<int>(slides.size()) - 1;
+        }
+    }, ButtonOption::Ascii());
 
     auto const tab_toggle = Toggle(&slide_titles, &current_slide_index);
 
@@ -173,6 +187,7 @@ int main() {
         export_button,
         tab_toggle,
         new_slide,
+        delete_slide,
         tabs
     });
 
@@ -186,6 +201,7 @@ int main() {
                 separator(),
                 export_button->Render(),
                 new_slide->Render(),
+                delete_slide->Render(),
                 separator(),
                 tab_toggle->Render()
             }),
