@@ -45,7 +45,8 @@ else ()
     )
 endif ()
 
-add_executable(${CMAKE_PROJECT_NAME} main.cpp)
+add_executable(${CMAKE_PROJECT_NAME} src/main.cpp
+        src/subprocess.h)
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/shippable)
 install(TARGETS ${PROJECT_NAME} DESTINATION .)
