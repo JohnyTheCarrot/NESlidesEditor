@@ -2,11 +2,12 @@
 #include <span>
 #include <array>
 #include <fstream>
-#include <ftxui/component/screen_interactive.hpp>
+#include <format>
 
 #include "subprocess.h"
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/component/component.hpp>
+#include <ftxui/component/screen_interactive.hpp>
 
 [[nodiscard]]
 bool start_process(std::span<char const *> command) {
@@ -42,18 +43,16 @@ bool Export(std::string_view input) {
     std::stringstream stream;
     stream << ".rodata\nslides:\n";
 
-    // for every line
     std::string line;
     std::stringstream input_stream{std::string{input}};
     while (std::getline(input_stream, line, '\n')) {
-        // stream << ".byte \"" << line << "\", NEWLINE\n";
-        stream << ".byte \"";
+        stream << ".byte ";
 
         for (auto c : line) {
-            stream << static_cast<char>(toupper(c));
+            stream << toupper(c) << ", ";
         }
 
-        stream << "\", NEWLINE\n";
+        stream << "NEWLINE\n";
     }
     stream << ".byte NEXT_SLIDE\n";
 
@@ -116,6 +115,7 @@ ftxui::Component ErrorModal(std::function<void()> const &okay_clicked) {
 }
 
 constexpr int c_MaxColumns{26};
+constexpr int c_MaxRows{27};
 
 int main() {
     using namespace ftxui;
@@ -135,12 +135,9 @@ int main() {
     auto const hide_error{[&]{ error_shown = false; }};
 
     std::string input;
-    auto textarea = Input(&input);
-    textarea |= CatchEvent([&](Event const &event) {
-        return event.is_character() && !std::isalnum(event.character()[0]) && !std::ispunct(event.character()[0]);
-    });
+    auto textarea = Input(&input) | border;
 
-    auto const save_button = Button("Export", [&] {
+    auto const export_button = Button("Export", [&] {
         if (Export(input))
             show_success();
         else
@@ -149,18 +146,23 @@ int main() {
 
 
     auto const component = Container::Vertical({
-        save_button,
+        export_button,
         textarea,
     });
+
     auto renderer = Renderer(component, [&] {
+        auto const current_rows{std::count(input.cbegin(), input.cend(), '\n')};
+        bool does_exceed_max_rows{current_rows >= c_MaxRows - 1};
+
         return vbox({
             hbox({
                 text("NESlides Editor"),
                 separator(),
-                save_button->Render()
+                export_button->Render()
             }),
             separator(),
-            textarea->Render()| flex
+            textarea->Render() | size(WIDTH, EQUAL, c_MaxColumns ) | size(HEIGHT, EQUAL, c_MaxRows + 1),
+            text(std::format("{} rows remaining", c_MaxRows - current_rows - 2)) | color(does_exceed_max_rows ? Color::Red : Color::White)
         }) | border;
     });
 
