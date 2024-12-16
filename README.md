@@ -10,12 +10,17 @@ Ignore the other binaries, only the ones in the shippable directory are the fina
 
 The following instructions will assume the <build_dir> is named `build`.
 
+If building from inside an IDE, make sure the `shippable` target is selected.
+
+# Windows
+On Windows you will need a GCC compiler, you can use Cygwin or MinGW.
+
 ## Commands to execute
 ```bash
 mkdir build
 cd build
 cmake ..
-cmake --build . --config Release
+cmake --build . --config Release --target shippable
 ```
 
 Once again, the final binaries will be in the `build/shippable` directory.
