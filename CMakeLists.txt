@@ -41,7 +41,7 @@ else ()
             BINARY_DIR ${MAKE_DIR}
             CONFIGURE_COMMAND ./configure
             BUILD_COMMAND ${MAKE_DIR}/build.sh
-            INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${MAKE_DIR}/make ${CMAKE_BINARY_DIR}/bin
+            INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${MAKE_DIR}/WinRel/gnumake.exe ${CMAKE_BINARY_DIR}/bin/make.exe
     )
 endif ()
 
@@ -50,8 +50,6 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/shippable)
 install(TARGETS ${PROJECT_NAME} DESTINATION .)
 install(DIRECTORY ${CMAKE_BINARY_DIR}/bin/ DESTINATION bin)
-
-add_dependencies(${PROJECT_NAME} cc65)
 
 add_custom_target(nes_proj ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/neslides ${NES_PROJ_DIR}
