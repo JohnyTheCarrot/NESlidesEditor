@@ -47,6 +47,22 @@ endif ()
 add_executable(${CMAKE_PROJECT_NAME} src/main.cpp
         src/subprocess.h)
 
+include(FetchContent)
+
+FetchContent_Declare(ftxui
+        GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui
+        GIT_TAG v5.0.0
+)
+
+FetchContent_GetProperties(ftxui)
+if(NOT ftxui_POPULATED)
+    FetchContent_Populate(ftxui)
+    add_subdirectory(${ftxui_SOURCE_DIR} ${ftxui_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${ftxui_SOURCE_DIR}/include)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ftxui::screen ftxui::dom ftxui::component)
+
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/shippable)
 install(TARGETS ${PROJECT_NAME} DESTINATION .)
 install(DIRECTORY ${CMAKE_BINARY_DIR}/bin/ DESTINATION bin)
