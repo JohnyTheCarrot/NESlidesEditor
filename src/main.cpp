@@ -38,23 +38,32 @@ bool start_process(std::span<char const *> command) {
 #define OS_OPTION nullptr
 #endif
 
+using Slides = std::vector<std::unique_ptr<std::string>>;
+
 [[nodiscard]]
-bool Export(std::string_view input) {
+bool Export(Slides const &input) {
     std::stringstream stream;
     stream << ".rodata\nslides:\n";
 
-    std::string line;
-    std::stringstream input_stream{std::string{input}};
-    while (std::getline(input_stream, line, '\n')) {
-        stream << ".byte ";
+    for (auto it{input.begin()}; it != input.end(); ++it) {
+        std::string line;
+        std::stringstream input_stream{**it};
+        while (std::getline(input_stream, line, '\n')) {
+            stream << ".byte ";
 
-        for (auto c : line) {
-            stream << toupper(c) << ", ";
+            for (auto c : line) {
+                stream << toupper(c) << ", ";
+            }
+
+            stream << "NEWLINE\n";
         }
 
-        stream << "NEWLINE\n";
+        if (it + 1 != input.end()) {
+            stream << ".byte NEXT_SLIDE\n";
+        } else {
+            stream << ".byte LAST_SLIDE\n";
+        }
     }
-    stream << ".byte NEXT_SLIDE\n";
 
     std::ofstream file{"neslides/src/segments/slides.s65"};
     if (!file.is_open())
@@ -120,10 +129,6 @@ constexpr int c_MaxRows{27};
 int main() {
     using namespace ftxui;
 
-    auto document = vbox({
-        text(L"Building neslides..."),
-    });
-
     auto screen{ScreenInteractive::Fullscreen()};
 
     bool success_shown = false;
@@ -134,34 +139,58 @@ int main() {
     auto const show_error{[&]{ error_shown = true; }};
     auto const hide_error{[&]{ error_shown = false; }};
 
-    std::string input;
-    auto textarea = Input(&input) | border;
+    Slides slides;
+    slides.emplace_back(std::make_unique<std::string>(""));
+
+    std::vector<std::string> slide_titles{"Slide 0"};
+
+    std::vector slide_inputs{Input(slides.back().get()) | border};
+
+    int current_slide_index{0};
+    auto tabs{Container::Tab({
+        slide_inputs.back()
+    }, &current_slide_index)};
+
+    auto const add_slide{[&] {
+        slides.emplace_back(std::make_unique<std::string>(""));
+        slide_inputs.emplace_back(Input(slides.back().get()) | border);
+        tabs->Add(slide_inputs.back());
+        slide_titles.emplace_back(std::format("Slide {}", slides.size() - 1));
+    }};
 
     auto const export_button = Button("Export", [&] {
-        if (Export(input))
+        if (Export(slides))
             show_success();
         else
             show_error();
     }, ButtonOption::Ascii());
 
+    auto const new_slide = Button("New Slide", add_slide, ButtonOption::Ascii());
+
+    auto const tab_toggle = Toggle(&slide_titles, &current_slide_index);
 
     auto const component = Container::Vertical({
         export_button,
-        textarea,
+        tab_toggle,
+        new_slide,
+        tabs
     });
 
     auto renderer = Renderer(component, [&] {
-        auto const current_rows{std::count(input.cbegin(), input.cend(), '\n')};
+        auto const current_rows{std::ranges::count(std::as_const(*slides[current_slide_index]), '\n')};
         bool does_exceed_max_rows{current_rows >= c_MaxRows - 1};
 
         return vbox({
             hbox({
                 text("NESlides Editor"),
                 separator(),
-                export_button->Render()
+                export_button->Render(),
+                new_slide->Render(),
+                separator(),
+                tab_toggle->Render()
             }),
             separator(),
-            textarea->Render() | size(WIDTH, EQUAL, c_MaxColumns ) | size(HEIGHT, EQUAL, c_MaxRows + 1),
+            tabs->Render() | size(WIDTH, EQUAL, c_MaxColumns ) | size(HEIGHT, EQUAL, c_MaxRows + 1),
             text(std::format("{} rows remaining", c_MaxRows - current_rows - 2)) | color(does_exceed_max_rows ? Color::Red : Color::White)
         }) | border;
     });
