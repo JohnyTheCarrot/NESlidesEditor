@@ -51,8 +51,16 @@ bool Export(Slides const &input) {
         std::stringstream input_stream{**it};
         while (std::getline(input_stream, line, '\n')) {
             stream << ".byte ";
+            bool contains_backslash_b{line.find("\\b") != std::string::npos};
 
-            for (auto c : line) {
+            stream << (contains_backslash_b ? "BIG_TEXT, " : "");
+            for (auto it = line.begin(); it != line.end(); ++it) {
+                char c = *it;
+                if (c == '\\' && it + 1 != line.end() && *(it + 1) == 'b') {
+                    ++it;
+                    continue;
+                }
+
                 stream << toupper(c) << ", ";
             }
 
@@ -231,6 +239,9 @@ int main() {
             current_slide_index = static_cast<int>(slides.size()) - 1;
         }
     }, ButtonOption::Ascii());
+    auto const big_text = Button("Big Text", [&] {
+        *slides.back() += "\\b";
+    }, ButtonOption::Ascii());
     auto const reset = Button("Reset", [&] {
         if (!AskIfSure())
             return;
@@ -266,10 +277,11 @@ int main() {
         export_button,
         save_as,
         open,
-        tab_toggle,
+        big_text,
         new_slide,
         delete_slide,
         reset,
+        tab_toggle,
         tabs
     });
 
@@ -284,6 +296,7 @@ int main() {
                 export_button->Render(),
                 save_as->Render(),
                 open->Render(),
+                big_text->Render(),
                 new_slide->Render(),
                 delete_slide->Render(),
                 reset->Render(),
