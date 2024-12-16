@@ -15,6 +15,28 @@ void start_process(std::span<char const *> command) {
         exit(1);
     }
 
+    FILE *pStdout{subprocess_stdout(&subprocess)};
+    if (!pStdout) {
+        fclose(pStdout);
+    } else {
+        char buffer[1024];
+        fgets(buffer, sizeof(buffer), pStdout);
+        std::cout << buffer << std::endl;
+    }
+
+    fclose(pStdout);
+
+    FILE *pStderr{subprocess_stderr(&subprocess)};
+    if (!pStderr) {
+        fclose(pStderr);
+    } else {
+        char buffer[1024];
+        fgets(buffer, sizeof(buffer), pStderr);
+        std::cerr << buffer << std::endl;
+    }
+
+    fclose(pStderr);
+
     std::cout << "Process returned: " << process_return << std::endl;
 }
 
